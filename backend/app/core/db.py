@@ -3,13 +3,26 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 import re
+import time
 import unicodedata
+from urllib import error as urlerror
 from urllib import parse, request
+import socket
 from typing import Generator
 
 from fastapi import HTTPException
 
-from app.core.config import CATALOG_SOURCE, DATABASE_DIR, DATABASE_PATH
+from app.core.config import (
+    CATALOG_SOURCE,
+    DATABASE_DIR,
+    DATABASE_PATH,
+    GOOGLE_BOOKS_API_KEY,
+    GOOGLE_BOOKS_BACKOFF_SECONDS,
+    GOOGLE_BOOKS_RETRY_MAX,
+    INGEST_TIMEOUT_SECONDS,
+    OPENLIBRARY_THROTTLE_SECONDS,
+    OPENLIBRARY_USER_AGENT,
+)
 from app.schemas.completed_book import CompletedBookSummary, ReadingCompleteRequest
 from app.schemas.reading_feedback import ReadingFeedbackGenerate, ReadingFeedbackResponse
 from app.schemas.reading_reflection import CurrentReadingReflectionsSnapshot, ReadingReflectionsCreate
@@ -174,6 +187,9 @@ def initialize_database() -> None:
                 pt_br_confidence_score INTEGER NOT NULL DEFAULT 0,
                 pt_br_confidence_reason TEXT,
                 staging_status TEXT NOT NULL DEFAULT 'retained',
+                decision_status TEXT NOT NULL DEFAULT 'retained',
+                decision_reason TEXT,
+                normalized_signals TEXT,
                 discard_reason TEXT,
                 dedupe_match_type TEXT,
                 dedupe_work_id INTEGER,
@@ -189,6 +205,9 @@ def initialize_database() -> None:
             "ALTER TABLE books ADD COLUMN source_type TEXT NOT NULL DEFAULT 'mock'",
             "ALTER TABLE books ADD COLUMN external_edition_id INTEGER",
             "ALTER TABLE books ADD COLUMN is_catalog_active INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE staging_source_records ADD COLUMN decision_status TEXT NOT NULL DEFAULT 'retained'",
+            "ALTER TABLE staging_source_records ADD COLUMN decision_reason TEXT",
+            "ALTER TABLE staging_source_records ADD COLUMN normalized_signals TEXT",
         ):
             try:
                 connection.execute(alter_sql)
@@ -903,6 +922,31 @@ def score_pt_br_confidence(
     return score, ",".join(reasons) if reasons else "sem_sinal_forte"
 
 
+def classify_catalog_decision(parsed: dict, score: int, confidence_reasons: str, dedupe_match_type: str | None) -> tuple[str, str]:
+    language_code = (parsed.get("language_code") or "").lower()
+    has_minimum_metadata = bool(parsed.get("title")) and bool(parsed.get("author"))
+    has_identifier = bool(parsed.get("isbn10") or parsed.get("isbn13"))
+
+    if language_code and language_code != "pt":
+        return "discarded", "idioma_incompativel"
+
+    if not has_minimum_metadata and not has_identifier:
+        return "discarded", "metadado_insuficiente"
+
+    if dedupe_match_type in {"isbn13", "isbn10", "title_author"} and score < 45:
+        return "discarded", "bloqueado_dedupe_colisao"
+
+    if score >= 70:
+        return "promoted", "confianca_ptbr_alta"
+
+    if score >= 35:
+        if "sem_sinal_forte" in confidence_reasons:
+            return "retained", "ambiguidade_sem_sinal_forte"
+        return "retained", "ambiguidade_ptbr"
+
+    return "discarded", "confianca_ptbr_insuficiente"
+
+
 def _parse_google_books_item(item: dict) -> dict:
     volume = item.get("volumeInfo", {})
     isbn10, isbn13 = _extract_isbn(volume.get("industryIdentifiers"))
@@ -963,21 +1007,127 @@ def _parse_open_library_doc(doc: dict) -> dict:
     }
 
 
-def fetch_google_books_records(query: str, max_results: int = 20) -> list[dict]:
+def _request_json(
+    *,
+    source_name: str,
+    url: str,
+    headers: dict[str, str] | None,
+    timeout_seconds: float,
+    retry_max: int = 0,
+    backoff_seconds: float = 0.0,
+    throttle_seconds: float = 0.0,
+) -> dict:
+    if throttle_seconds > 0:
+        time.sleep(throttle_seconds)
+
+    attempt = 0
+    last_error: Exception | None = None
+    while attempt <= retry_max:
+        attempt += 1
+        req = request.Request(url, headers=headers or {})
+        try:
+            with request.urlopen(req, timeout=timeout_seconds) as response:
+                raw = response.read().decode("utf-8")
+            if not raw.strip():
+                raise RuntimeError(f"{source_name}: resposta vazia da fonte externa.")
+            return json.loads(raw)
+        except urlerror.HTTPError as http_error:
+            status_code = getattr(http_error, "code", None)
+            if status_code == 429 and attempt <= retry_max:
+                wait = backoff_seconds * attempt if backoff_seconds > 0 else 0
+                print(f"[ingest:{source_name}] 429 rate-limit (tentativa {attempt}/{retry_max + 1}); aguardando {wait:.1f}s")
+                if wait > 0:
+                    time.sleep(wait)
+                last_error = http_error
+                continue
+            if status_code == 403:
+                raise RuntimeError(
+                    f"{source_name}: acesso bloqueado (403). Verifique chave, proxy/túnel e política da fonte."
+                ) from http_error
+            if status_code == 401:
+                raise RuntimeError(
+                    f"{source_name}: autenticação rejeitada (401). Verifique configuração de credenciais."
+                ) from http_error
+            raise RuntimeError(f"{source_name}: erro HTTP {status_code}.") from http_error
+        except urlerror.URLError as url_error:
+            message = str(url_error.reason) if getattr(url_error, "reason", None) else str(url_error)
+            if "Tunnel connection failed" in message:
+                raise RuntimeError(f"{source_name}: bloqueio de proxy/túnel ({message}).") from url_error
+            if attempt <= retry_max:
+                wait = backoff_seconds * attempt if backoff_seconds > 0 else 0
+                print(f"[ingest:{source_name}] falha transitória de rede (tentativa {attempt}/{retry_max + 1}); aguardando {wait:.1f}s")
+                if wait > 0:
+                    time.sleep(wait)
+                last_error = url_error
+                continue
+            raise RuntimeError(f"{source_name}: falha de rede ({message}).") from url_error
+        except socket.timeout as timeout_error:
+            if attempt <= retry_max:
+                wait = backoff_seconds * attempt if backoff_seconds > 0 else 0
+                print(f"[ingest:{source_name}] timeout (tentativa {attempt}/{retry_max + 1}); aguardando {wait:.1f}s")
+                if wait > 0:
+                    time.sleep(wait)
+                last_error = timeout_error
+                continue
+            raise RuntimeError(
+                f"{source_name}: timeout após {timeout_seconds:.1f}s. Ajuste INGEST_TIMEOUT_SECONDS ou --source-timeout."
+            ) from timeout_error
+        except json.JSONDecodeError as parse_error:
+            raise RuntimeError(f"{source_name}: erro de parsing JSON da resposta externa.") from parse_error
+
+    raise RuntimeError(f"{source_name}: falha de requisição após tentativas ({last_error}).")
+
+
+def fetch_google_books_records(
+    query: str,
+    max_results: int = 20,
+    timeout_seconds: float | None = None,
+    retry_max: int | None = None,
+    backoff_seconds: float | None = None,
+) -> list[dict]:
+    timeout = timeout_seconds if timeout_seconds is not None else INGEST_TIMEOUT_SECONDS
+    retries = retry_max if retry_max is not None else GOOGLE_BOOKS_RETRY_MAX
+    backoff = backoff_seconds if backoff_seconds is not None else GOOGLE_BOOKS_BACKOFF_SECONDS
     url = (
         "https://www.googleapis.com/books/v1/volumes?"
-        + parse.urlencode({"q": query, "maxResults": max(1, min(max_results, 40))})
+        + parse.urlencode(
+            {
+                "q": query,
+                "maxResults": max(1, min(max_results, 40)),
+                **({"key": GOOGLE_BOOKS_API_KEY} if GOOGLE_BOOKS_API_KEY else {}),
+            }
+        )
     )
-    with request.urlopen(url, timeout=20) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    print(f"[ingest:google_books] query={query!r} max_results={max_results} timeout={timeout}s retry={retries}")
+    payload = _request_json(
+        source_name="google_books",
+        url=url,
+        headers={"Accept": "application/json"},
+        timeout_seconds=timeout,
+        retry_max=max(0, retries),
+        backoff_seconds=max(0.0, backoff),
+    )
     items = payload.get("items") or []
     return [_parse_google_books_item(item) for item in items if item.get("id")]
 
 
-def fetch_open_library_records(query: str, limit: int = 20) -> list[dict]:
+def fetch_open_library_records(
+    query: str,
+    limit: int = 20,
+    timeout_seconds: float | None = None,
+    throttle_seconds: float | None = None,
+) -> list[dict]:
+    timeout = timeout_seconds if timeout_seconds is not None else INGEST_TIMEOUT_SECONDS
+    throttle = throttle_seconds if throttle_seconds is not None else OPENLIBRARY_THROTTLE_SECONDS
     url = "https://openlibrary.org/search.json?" + parse.urlencode({"q": query, "limit": max(1, min(limit, 50))})
-    with request.urlopen(url, timeout=20) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    print(f"[ingest:open_library] query={query!r} limit={limit} timeout={timeout}s throttle={throttle}s")
+    payload = _request_json(
+        source_name="open_library",
+        url=url,
+        headers={"Accept": "application/json", "User-Agent": OPENLIBRARY_USER_AGENT},
+        timeout_seconds=timeout,
+        throttle_seconds=max(0.0, throttle),
+    )
     docs = payload.get("docs") or []
     return [_parse_open_library_doc(doc) for doc in docs]
 
@@ -1156,16 +1306,35 @@ def create_ingestion_batch(source_name: str, query_context: str | None = None) -
         return int(cursor.lastrowid)
 
 
-def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) -> dict:
+def ingest_catalog_records(
+    source_name: str,
+    query: str,
+    max_results: int = 20,
+    source_timeout: float | None = None,
+    source_retry_max: int | None = None,
+    source_backoff_seconds: float | None = None,
+    source_throttle_seconds: float | None = None,
+) -> dict:
     if source_name not in {"google_books", "open_library"}:
         raise HTTPException(status_code=400, detail="Fonte não suportada para ingestão nesta fase.")
 
     batch_id = create_ingestion_batch(source_name, query_context=query)
     try:
         if source_name == "google_books":
-            records = fetch_google_books_records(query, max_results=max_results)
+            records = fetch_google_books_records(
+                query,
+                max_results=max_results,
+                timeout_seconds=source_timeout,
+                retry_max=source_retry_max,
+                backoff_seconds=source_backoff_seconds,
+            )
         else:
-            records = fetch_open_library_records(query, limit=max_results)
+            records = fetch_open_library_records(
+                query,
+                limit=max_results,
+                timeout_seconds=source_timeout,
+                throttle_seconds=source_throttle_seconds,
+            )
     except Exception as fetch_error:
         finished_at = utc_now_iso()
         with get_connection() as connection:
@@ -1187,6 +1356,12 @@ def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) 
             "records_retained": 0,
             "records_discarded": 0,
             "examples": [],
+            "source_diagnostics": {
+                "timeout_seconds": source_timeout if source_timeout is not None else INGEST_TIMEOUT_SECONDS,
+                "retry_max": source_retry_max if source_retry_max is not None else GOOGLE_BOOKS_RETRY_MAX,
+                "backoff_seconds": source_backoff_seconds if source_backoff_seconds is not None else GOOGLE_BOOKS_BACKOFF_SECONDS,
+                "throttle_seconds": source_throttle_seconds if source_throttle_seconds is not None else OPENLIBRARY_THROTTLE_SECONDS,
+            },
             "error": str(fetch_error),
         }
 
@@ -1196,6 +1371,9 @@ def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) 
     with get_connection() as connection:
         for parsed in records:
             fetched_at = utc_now_iso()
+            normalized_title = normalize_text(parsed.get("title"))
+            normalized_author = normalize_text(parsed.get("author"))
+            edition_id, match_type = _find_existing_edition(connection, parsed)
             score, reason = score_pt_br_confidence(
                 parsed.get("language_code"),
                 parsed.get("language_region"),
@@ -1205,14 +1383,7 @@ def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) 
                 parsed["source_name"],
                 parsed.get("source_url"),
             )
-            if score >= 60:
-                staging_status = "promoted"
-            elif score >= 40:
-                staging_status = "retained"
-            else:
-                staging_status = "discarded"
-
-            edition_id, match_type = _find_existing_edition(connection, parsed)
+            staging_status, decision_reason = classify_catalog_decision(parsed, score, reason, match_type)
             work_id = None
             if staging_status == "promoted":
                 if edition_id:
@@ -1239,14 +1410,23 @@ def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) 
             else:
                 discarded += 1
 
+            normalized_signals = {
+                "language_code": parsed.get("language_code"),
+                "language_region": parsed.get("language_region"),
+                "publisher": parsed.get("publisher"),
+                "isbn10": parsed.get("isbn10"),
+                "isbn13": parsed.get("isbn13"),
+                "dedupe_match_type": match_type,
+            }
+
             connection.execute(
                 """
                 INSERT INTO staging_source_records (
                     ingestion_batch_id, source_name, source_record_id, raw_payload_json, raw_title, raw_author, raw_language_code,
                     raw_language_region, raw_publisher, raw_published_date, raw_isbn10, raw_isbn13, raw_source_url, raw_cover_url,
-                    normalized_title, normalized_author, pt_br_confidence_score, pt_br_confidence_reason, staging_status, discard_reason,
+                    normalized_title, normalized_author, pt_br_confidence_score, pt_br_confidence_reason, staging_status, decision_status, decision_reason, normalized_signals, discard_reason,
                     dedupe_match_type, dedupe_work_id, dedupe_edition_id, fetched_at, promoted_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     batch_id,
@@ -1263,12 +1443,15 @@ def ingest_catalog_records(source_name: str, query: str, max_results: int = 20) 
                     parsed.get("isbn13"),
                     parsed.get("source_url"),
                     parsed.get("cover_url"),
-                    normalize_text(parsed.get("title")),
-                    normalize_text(parsed.get("author")),
+                    normalized_title,
+                    normalized_author,
                     score,
                     reason,
                     staging_status,
-                    "baixa_confianca_ptbr" if staging_status == "discarded" else None,
+                    staging_status,
+                    decision_reason,
+                    json.dumps(normalized_signals, ensure_ascii=False),
+                    decision_reason if staging_status == "discarded" else None,
                     match_type,
                     work_id,
                     edition_id,
@@ -1307,6 +1490,63 @@ def summarize_ingestion_batch(batch_id: int) -> dict:
             """,
             (batch_id,),
         ).fetchall()
+        breakdown_rows = connection.execute(
+            """
+            SELECT decision_status, COALESCE(decision_reason, 'sem_motivo') AS decision_reason, COUNT(*) AS total
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ?
+            GROUP BY decision_status, COALESCE(decision_reason, 'sem_motivo')
+            ORDER BY total DESC, decision_status ASC
+            """,
+            (batch_id,),
+        ).fetchall()
+        retained_examples = connection.execute(
+            """
+            SELECT id, raw_title, raw_author, decision_reason, pt_br_confidence_score
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ? AND decision_status = 'retained'
+            ORDER BY pt_br_confidence_score DESC, id ASC
+            LIMIT 5
+            """,
+            (batch_id,),
+        ).fetchall()
+        discarded_examples = connection.execute(
+            """
+            SELECT id, raw_title, raw_author, decision_reason, pt_br_confidence_score
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ? AND decision_status = 'discarded'
+            ORDER BY pt_br_confidence_score DESC, id ASC
+            LIMIT 5
+            """,
+            (batch_id,),
+        ).fetchall()
+
+    breakdown = {
+        "promoted": 0,
+        "retained_ambiguidade": 0,
+        "discarded_idioma_incompativel": 0,
+        "discarded_confianca_ptbr_insuficiente": 0,
+        "discarded_metadado_insuficiente": 0,
+        "discarded_bloqueado_dedupe_colisao": 0,
+        "decision_reasons": [],
+    }
+    for row in breakdown_rows:
+        reason = row["decision_reason"]
+        status = row["decision_status"]
+        total = row["total"]
+        breakdown["decision_reasons"].append({"status": status, "reason": reason, "count": total})
+        if status == "promoted":
+            breakdown["promoted"] += total
+        if status == "retained":
+            breakdown["retained_ambiguidade"] += total
+        if reason == "idioma_incompativel":
+            breakdown["discarded_idioma_incompativel"] += total
+        if reason == "confianca_ptbr_insuficiente":
+            breakdown["discarded_confianca_ptbr_insuficiente"] += total
+        if reason == "metadado_insuficiente":
+            breakdown["discarded_metadado_insuficiente"] += total
+        if reason == "bloqueado_dedupe_colisao":
+            breakdown["discarded_bloqueado_dedupe_colisao"] += total
 
     return {
         "batch_id": batch["id"],
@@ -1318,4 +1558,64 @@ def summarize_ingestion_batch(batch_id: int) -> dict:
         "records_retained": batch["records_retained"],
         "records_discarded": batch["records_discarded"],
         "examples": [dict(row) for row in examples],
+        "decision_breakdown": breakdown,
+        "retained_examples": [dict(row) for row in retained_examples],
+        "discarded_examples": [dict(row) for row in discarded_examples],
     }
+
+
+def inspect_ingestion_batch(batch_id: int, limit_per_status: int = 5) -> dict:
+    summary = summarize_ingestion_batch(batch_id)
+    with get_connection() as connection:
+        promoted = connection.execute(
+            """
+            SELECT id, raw_title, raw_author, decision_reason, pt_br_confidence_score, dedupe_match_type
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ? AND decision_status = 'promoted'
+            ORDER BY pt_br_confidence_score DESC, id ASC
+            LIMIT ?
+            """,
+            (batch_id, limit_per_status),
+        ).fetchall()
+        retained = connection.execute(
+            """
+            SELECT id, raw_title, raw_author, decision_reason, pt_br_confidence_score, dedupe_match_type
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ? AND decision_status = 'retained'
+            ORDER BY pt_br_confidence_score DESC, id ASC
+            LIMIT ?
+            """,
+            (batch_id, limit_per_status),
+        ).fetchall()
+        discarded = connection.execute(
+            """
+            SELECT id, raw_title, raw_author, decision_reason, pt_br_confidence_score, dedupe_match_type
+            FROM staging_source_records
+            WHERE ingestion_batch_id = ? AND decision_status = 'discarded'
+            ORDER BY pt_br_confidence_score DESC, id ASC
+            LIMIT ?
+            """,
+            (batch_id, limit_per_status),
+        ).fetchall()
+
+    return {
+        "summary": summary,
+        "promoted_examples": [dict(row) for row in promoted],
+        "retained_examples": [dict(row) for row in retained],
+        "discarded_examples": [dict(row) for row in discarded],
+    }
+
+
+def inspect_staging_record(record_id: int) -> dict:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM staging_source_records
+            WHERE id = ?
+            """,
+            (record_id,),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Registro de staging não encontrado.")
+    return dict(row)

@@ -18,13 +18,13 @@ python -m app.commands.catalog_pipeline <comando>
 ### 1) Ingestão Google Books
 
 ```bash
-python -m app.commands.catalog_pipeline ingest_google_books --query "literatura brasileira" --max-results 20
+python -m app.commands.catalog_pipeline ingest_google_books --query "literatura brasileira" --max-results 20 --source-timeout 25 --retry-max 3 --backoff-seconds 2.0
 ```
 
 ### 2) Ingestão Open Library
 
 ```bash
-python -m app.commands.catalog_pipeline ingest_open_library --query "romance brasileiro" --max-results 20
+python -m app.commands.catalog_pipeline ingest_open_library --query "romance brasileiro" --max-results 20 --source-timeout 25 --throttle-seconds 0.6
 ```
 
 ### 3) Stub Amazon/Kindle
@@ -39,6 +39,18 @@ python -m app.commands.catalog_pipeline ingest_amazon_stub --query "kindle brasi
 python -m app.commands.catalog_pipeline summarize_ingestion_batch --batch-id 1
 ```
 
+### 5) Inspeção detalhada de lote
+
+```bash
+python -m app.commands.catalog_pipeline inspect_ingestion_batch --batch-id 1 --limit 5
+```
+
+### 6) Inspeção de registro de staging
+
+```bash
+python -m app.commands.catalog_pipeline inspect_staging_record --record-id 1
+```
+
 ## Saída esperada
 
 Os comandos de ingestão retornam JSON com:
@@ -51,6 +63,9 @@ Os comandos de ingestão retornam JSON com:
 - `records_retained`
 - `records_discarded`
 - `examples`
+- `decision_breakdown`
+- `retained_examples`
+- `discarded_examples`
 
 ## Como staging e promoção funcionam
 
@@ -96,3 +111,15 @@ Exemplo de rodada local esperada:
 Se a fonte externa estiver indisponível (por exemplo, proxy bloqueando acesso), o lote é encerrado com `status=failed` e o erro fica registrado no retorno do comando de ingestão.
 
 Mesmo em falha, o lote permanece consultável por `summarize_ingestion_batch`.
+
+
+## Variáveis de ambiente para hardening
+
+- `GOOGLE_BOOKS_API_KEY`
+- `OPENLIBRARY_USER_AGENT`
+- `INGEST_TIMEOUT_SECONDS`
+- `GOOGLE_BOOKS_RETRY_MAX`
+- `GOOGLE_BOOKS_BACKOFF_SECONDS`
+- `OPENLIBRARY_THROTTLE_SECONDS`
+
+Veja também `docs/ingestao-local-real.md`.

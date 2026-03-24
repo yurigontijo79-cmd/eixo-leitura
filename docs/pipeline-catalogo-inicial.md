@@ -98,3 +98,15 @@ Essa inspeção é feita por comando de terminal (`summarize_ingestion_batch`).
 - Amazon/Kindle ainda em modo stub técnico;
 - sem painel visual de administração;
 - sem execução agendada de ingestão (rodagem manual por comando).
+
+
+## Explicabilidade de decisão (calibragem fase 15)
+
+Cada item de staging agora registra:
+
+- `decision_status`;
+- `decision_reason`;
+- `pt_br_confidence_score`;
+- `normalized_signals`.
+
+Isso permite auditoria por registro e diagnóstico por lote sem dashboard.

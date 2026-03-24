@@ -19,6 +19,8 @@ A documentação principal do MVP está nestes arquivos:
 - `docs/dedupe-e-filtro-ptbr.md` — regras de normalização, dedupe em camadas e ativação por confiança pt-BR;
 - `docs/pipeline-catalogo-inicial.md` — desenho e implementação da primeira versão funcional do pipeline de povoamento;
 - `docs/operacao-ingestao-catalogo.md` — comandos operacionais para ingestão, promoção e inspeção por lote;
+- `docs/ingestao-local-real.md` — hardening operacional para rodar ingestão externa local com retry/throttle/timeouts;
+- `docs/calibragem-promocao-ptbr.md` — calibragem da política de promoção pt-BR com explicabilidade por decisão;
 - `docs/runbook-local.md` — operação local curta, portas sugeridas e resolução rápida de problemas;
 - `docs/validacao-mvp-local.md` — registro objetivo da validação guiada do MVP em uso local;
 - `docs/overview.md` — índice curto de apoio para a base canônica.
@@ -44,6 +46,15 @@ Para esse desenho, consultar:
 
 O pipeline inicial foi implementado para povoar o catálogo interno sem consulta externa em tempo real no fluxo da home.
 
+Variáveis de hardening da ingestão local real:
+
+- `GOOGLE_BOOKS_API_KEY`
+- `OPENLIBRARY_USER_AGENT`
+- `INGEST_TIMEOUT_SECONDS`
+- `GOOGLE_BOOKS_RETRY_MAX`
+- `GOOGLE_BOOKS_BACKOFF_SECONDS`
+- `OPENLIBRARY_THROTTLE_SECONDS`
+
 Comandos principais (backend):
 
 ```bash
@@ -51,6 +62,8 @@ cd backend
 python -m app.commands.catalog_pipeline ingest_google_books --query "literatura brasileira" --max-results 20
 python -m app.commands.catalog_pipeline ingest_open_library --query "romance brasileiro" --max-results 20
 python -m app.commands.catalog_pipeline summarize_ingestion_batch --batch-id 1
+python -m app.commands.catalog_pipeline inspect_ingestion_batch --batch-id 1 --limit 5
+python -m app.commands.catalog_pipeline inspect_staging_record --record-id 1
 ```
 
 Controle de convivência mock/real no app:

@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.core.db import normalize_text, score_pt_br_confidence
+from app.core.db import classify_catalog_decision, normalize_text, score_pt_br_confidence
 
 
 class CatalogPipelineRulesTests(unittest.TestCase):
@@ -38,6 +38,38 @@ class CatalogPipelineRulesTests(unittest.TestCase):
         )
         self.assertLess(score, 40)
         self.assertTrue(reason)
+
+    def test_decision_retains_ambiguous_records_instead_of_hard_discard(self):
+        status, reason = classify_catalog_decision(
+            parsed={
+                "language_code": None,
+                "title": "Título",
+                "author": "Autor",
+                "isbn10": None,
+                "isbn13": None,
+            },
+            score=42,
+            confidence_reasons="sem_sinal_forte",
+            dedupe_match_type=None,
+        )
+        self.assertEqual(status, "retained")
+        self.assertEqual(reason, "ambiguidade_sem_sinal_forte")
+
+    def test_decision_discards_incompatible_language(self):
+        status, reason = classify_catalog_decision(
+            parsed={
+                "language_code": "en",
+                "title": "Book title",
+                "author": "Author",
+                "isbn10": None,
+                "isbn13": None,
+            },
+            score=80,
+            confidence_reasons="language_code=en",
+            dedupe_match_type=None,
+        )
+        self.assertEqual(status, "discarded")
+        self.assertEqual(reason, "idioma_incompativel")
 
 
 if __name__ == "__main__":
