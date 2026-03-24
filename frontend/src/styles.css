@@ -18,7 +18,7 @@ body {
   margin: 0;
   min-width: 1180px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #0b0b0c 0%, #111113 100%);
+  background: #10141a;
   color: #ece7dc;
 }
 
@@ -37,7 +37,7 @@ button {
 
 .shell {
   display: grid;
-  grid-template-columns: 312px 1fr;
+  grid-template-columns: 336px 1fr;
   min-height: 100vh;
 }
 
@@ -45,9 +45,9 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 34px 22px 24px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  background: #16171a;
+  padding: 30px 20px 22px;
+  border-right: 1px solid rgba(107, 138, 179, 0.26);
+  background: linear-gradient(180deg, #0e1116 0%, #12171e 100%);
 }
 
 .sidebar-brand {
@@ -70,7 +70,7 @@ button {
 
 .sidebar h1 {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   line-height: 1.15;
   max-width: 15ch;
   color: #f3ede2;
@@ -85,31 +85,31 @@ button {
 
 .nav {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 12px;
-  border-radius: 12px;
-  color: rgba(221, 217, 206, 0.74);
-  background: rgba(255, 255, 255, 0.01);
-  border: 1px solid transparent;
+  padding: 12px 11px;
+  border-radius: 10px;
+  color: rgba(228, 224, 214, 0.78);
+  background: rgba(23, 30, 40, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .nav-link:hover {
-  color: #f2eee5;
-  background: rgba(116, 140, 175, 0.14);
-  border-color: rgba(116, 140, 175, 0.2);
+  color: #f4efe6;
+  background: rgba(56, 74, 98, 0.9);
+  border-color: rgba(103, 132, 171, 0.42);
 }
 
 .nav-link-active {
   color: #f3ede2;
-  background: rgba(170, 137, 74, 0.15);
-  border-color: rgba(170, 137, 74, 0.3);
+  background: rgba(52, 74, 103, 0.96);
+  border-color: rgba(124, 157, 198, 0.48);
 }
 
 .nav-index {
@@ -119,8 +119,8 @@ button {
 }
 
 .content {
-  padding: 22px 28px 26px;
-  background: #111113;
+  padding: 18px 22px 20px;
+  background: linear-gradient(180deg, #1a212b 0%, #171d26 100%);
 }
 
 .page-stack {
@@ -129,7 +129,7 @@ button {
 }
 
 .module-page {
-  max-width: 1260px;
+  max-width: 1320px;
 }
 
 .home-header {
@@ -156,22 +156,22 @@ button {
 }
 
 .panel {
-  background: #1c1d21;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #252d3a;
+  border: 1px solid rgba(129, 155, 188, 0.24);
   border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(4, 8, 14, 0.2);
 }
 
 .panel-soft {
-  background: #17181c;
-  border-color: rgba(255, 255, 255, 0.06);
+  background: #202733;
+  border-color: rgba(129, 155, 188, 0.16);
 }
 
 .home-decision-axis,
 .central-axis-reading {
-  border-color: rgba(170, 137, 74, 0.24);
-  background: #1c1d21;
+  border-color: rgba(147, 177, 214, 0.3);
+  background: #2a3342;
 }
 
 .home-decision-axis {
@@ -180,7 +180,7 @@ button {
 
 .reading-central-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(270px, 330px);
+  grid-template-columns: minmax(0, 1.85fr) minmax(260px, 320px);
   gap: 16px;
   align-items: start;
 }
@@ -190,7 +190,7 @@ button {
 }
 
 .central-axis-list {
-  padding-right: 6px;
+  padding: 2px 8px 2px 2px;
 }
 
 .central-axis-list .panel-header {
@@ -198,7 +198,7 @@ button {
 }
 
 .central-path-list {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(129, 155, 188, 0.24);
 }
 
 .central-path-list .book-row:first-child {
@@ -220,7 +220,7 @@ button {
 .central-next-list {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(129, 155, 188, 0.24);
 }
 
 .central-support {
@@ -229,8 +229,8 @@ button {
 }
 
 .support-panel {
-  background: #17181c;
-  border-color: rgba(255, 255, 255, 0.05);
+  background: #1f2631;
+  border-color: rgba(129, 155, 188, 0.14);
 }
 
 .central-memory-strip {
@@ -259,7 +259,7 @@ button {
 .feedback,
 .session-meta,
 .session-feeling {
-  color: rgba(215, 210, 199, 0.74);
+  color: rgba(220, 223, 228, 0.78);
 }
 
 .book-list {
@@ -273,12 +273,12 @@ button {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(129, 155, 188, 0.22);
   transition: background 0.15s ease;
 }
 
 .book-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(97, 126, 166, 0.16);
 }
 
 .book-row-main {
@@ -288,7 +288,7 @@ button {
 .book-row h3 {
   margin: 0 0 2px;
   font-size: 1.02rem;
-  color: #ece7dc;
+  color: #f2efe7;
 }
 
 .book-row-side {
@@ -324,9 +324,9 @@ button {
 }
 
 .command-secondary {
-  background: rgba(115, 139, 171, 0.14);
-  color: #e4ddcf;
-  border-color: rgba(115, 139, 171, 0.26);
+  background: rgba(90, 115, 148, 0.2);
+  color: #e9e6de;
+  border-color: rgba(120, 148, 185, 0.34);
 }
 
 .split-panels {
