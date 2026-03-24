@@ -32,7 +32,7 @@ export function CompletedBooksPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack module-page">
       <header className="page-header">
         <p className="eyebrow">Concluídos</p>
         <h2>Livros que já encontraram um fechamento</h2>

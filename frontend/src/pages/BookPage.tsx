@@ -83,7 +83,7 @@ export function BookPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack module-page">
       <header className="page-header">
         <p className="eyebrow">Livro</p>
         <h2>{book.title}</h2>

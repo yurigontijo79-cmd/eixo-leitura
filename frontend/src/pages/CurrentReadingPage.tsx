@@ -203,7 +203,7 @@ export function CurrentReadingPage() {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack module-page">
       <header className="page-header">
         <p className="eyebrow">Leitura atual</p>
         <h2>{currentBook ? currentBook.title : 'Você ainda não iniciou uma leitura'}</h2>
