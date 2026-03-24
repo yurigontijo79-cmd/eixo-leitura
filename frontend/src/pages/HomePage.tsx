@@ -18,7 +18,7 @@ export function HomePage() {
 
       <div className="home-workspace">
         <div className="home-primary-stack">
-          <section className={`panel home-hero${hasCurrentReading ? '' : ' home-hero-empty'}`}>
+          <section className={`panel home-axis${hasCurrentReading ? '' : ' home-axis-empty'}`}>
             <div className="panel-header">
               <h3>{hasCurrentReading ? 'Continuidade' : 'Retomada'}</h3>
               <span>{hasCurrentReading ? 'leitura em curso' : 'sem leitura ativa'}</span>
@@ -49,7 +49,7 @@ export function HomePage() {
             )}
           </section>
 
-          <section className="panel">
+          <section className="panel panel-soft">
             <div className="panel-header">
               <h3>Novos caminhos</h3>
               <span>{suggestions.featured.length} em destaque</span>
@@ -91,7 +91,7 @@ export function HomePage() {
         </div>
 
         <aside className="home-secondary-stack">
-          <section className="panel compact-panel">
+          <section className="panel panel-soft compact-panel">
             <div className="panel-header">
               <h3>Continuidade</h3>
             </div>
@@ -121,7 +121,7 @@ export function HomePage() {
             )}
           </section>
 
-          <section className={`panel compact-panel${!hasCurrentReading ? ' shortlist-emphasis' : ''}`}>
+          <section className={`panel panel-soft compact-panel${!hasCurrentReading ? ' shortlist-emphasis' : ''}`}>
             <div className="panel-header">
               <h3>{hasCurrentReading ? 'Shortlist' : 'Próximo passo possível'}</h3>
               <span>{readingState.shortlist.length} guardados</span>
@@ -141,7 +141,7 @@ export function HomePage() {
             )}
           </section>
 
-          <section className="panel compact-panel">
+          <section className="panel panel-soft compact-panel">
             <div className="panel-header compact-gap">
               <h3>Concluídos</h3>
               <span>{completedBooks.length} memórias</span>

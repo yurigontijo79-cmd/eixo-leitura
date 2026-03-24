@@ -36,9 +36,7 @@ export function AppShell() {
       </aside>
 
       <main className="content">
-        <div className="workspace-frame">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );
