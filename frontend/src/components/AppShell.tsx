@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
 const navigationItems = [
-  { to: '/', label: 'Início' },
+  { to: '/', label: 'Central' },
   { to: '/current', label: 'Leitura atual' },
   { to: '/completed', label: 'Concluídos' },
 ];
@@ -13,9 +13,9 @@ export function AppShell() {
         <div className="sidebar-brand">
           <p className="brand-mark">EIXO</p>
           <p className="eyebrow">Leitura</p>
-          <h1>Leitura guiada com percurso.</h1>
+          <h1>Central de leitura.</h1>
           <p className="sidebar-copy">
-            Um espaço para escolher com calma, iniciar com intenção e manter memória do caminho.
+            Sistema contínuo para escolha, continuidade e memória de leitura.
           </p>
         </div>
 

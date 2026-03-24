@@ -12,15 +12,15 @@ const stateLabel: Partial<Record<VisibleState, string>> = {
 
 export function BookCard({ book }: { book: Book }) {
   return (
-    <article className="book-row">
+    <Link className="book-row" to={`/books/${book.id}`}>
       <div className="book-row-main">
         <h3>{book.title}</h3>
         <p className="book-meta">{book.author}</p>
-        {book.state && <p className="book-state-chip subtle">{stateLabel[book.state]}</p>}
       </div>
-      <Link className="ghost-button command-secondary book-row-action" to={`/books/${book.id}`}>
-        abrir livro
-      </Link>
-    </article>
+      <div className="book-row-side">
+        {book.state && <p className="book-state-chip subtle">{stateLabel[book.state]}</p>}
+        <span className="book-row-open">abrir</span>
+      </div>
+    </Link>
   );
 }

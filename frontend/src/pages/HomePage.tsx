@@ -3,94 +3,81 @@ import { BookCard } from '../components/BookCard';
 import { useLibrary } from '../context/LibraryContext';
 
 export function HomePage() {
-  const { completedBooks, readingState, readingSessions, readingTrajectory, suggestions, loading, error, refreshAll } =
-    useLibrary();
+  const { completedBooks, readingState, readingSessions, suggestions, loading, error, refreshAll } = useLibrary();
 
-  const shortlistPreview = readingState.shortlist.slice(0, 3);
+  const shortlistPreview = readingState.shortlist.slice(0, 4);
   const hasCurrentReading = Boolean(readingState.current_reading);
 
   return (
-    <div className="page-stack module-page home-module">
+    <div className="page-stack module-page reading-central">
       <header className="page-header home-header">
-        <p className="eyebrow">Início</p>
-        <h2>{hasCurrentReading ? 'Retomar leitura' : 'Escolher próximo caminho'}</h2>
+        <p className="eyebrow">Central de leitura</p>
+        <h2>{hasCurrentReading ? 'Sessão em andamento' : 'Escolha seu próximo caminho'}</h2>
       </header>
 
-      <div className="home-decision-layout">
-        <section className="panel home-decision-axis">
+      <div className="reading-central-layout">
+        <section className="panel central-axis">
           {hasCurrentReading ? (
             <>
               <div className="panel-header">
                 <h3>Leitura atual</h3>
-                <span>ação principal</span>
+                <span>eixo principal</span>
               </div>
-              <div className="home-axis-content">
+
+              <div className="central-current-block">
                 <p className="book-state-chip">Em leitura</p>
                 <h3>{readingState.current_reading?.title}</h3>
                 <p className="book-meta">{readingState.current_reading?.author}</p>
                 <p className="placeholder subtle-copy">
                   {readingSessions.last_session
-                    ? `Você parou em: ${readingSessions.last_session.progress_text}`
-                    : 'Abra uma sessão breve e registre o ponto de continuidade.'}
+                    ? `Último ponto: ${readingSessions.last_session.progress_text}`
+                    : 'Sem sessão registrada ainda. Continue a leitura e registre um ponto de avanço.'}
                 </p>
-                {readingTrajectory.trajectory_text && (
-                  <p className="placeholder subtle-copy">{readingTrajectory.trajectory_text}</p>
+
+                <div className="central-actions">
+                  <Link className="action-button" to="/current">
+                    continuar leitura
+                  </Link>
+                  <Link className="ghost-button command-secondary" to="/current">
+                    registrar sessão
+                  </Link>
+                </div>
+              </div>
+
+              <div className="central-next-list">
+                <div className="panel-header compact-gap">
+                  <h3>Próximos caminhos</h3>
+                  <span>{suggestions.featured.length}</span>
+                </div>
+                {loading && <p className="placeholder">Reunindo caminhos...</p>}
+                {error && (
+                  <div className="stacked-copy">
+                    <p className="placeholder">{error}</p>
+                    <button className="ghost-button" type="button" onClick={() => void refreshAll()}>
+                      tentar de novo
+                    </button>
+                  </div>
                 )}
-                <Link className="action-button" to="/current">
-                  abrir leitura atual
-                </Link>
+                {!loading && !error && (
+                  <div className="book-list">
+                    {suggestions.featured.slice(0, 5).map((book) => (
+                      <BookCard key={book.id} book={book} />
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           ) : (
             <>
               <div className="panel-header">
-                <h3>Próximos caminhos</h3>
-                <span>ação principal</span>
+                <h3>Lista de caminhos</h3>
+                <span>eixo principal</span>
               </div>
 
-              {loading && <p className="placeholder">Reunindo os próximos caminhos...</p>}
-              {error && (
-                <div className="stacked-copy">
-                  <p className="placeholder">{error}</p>
-                  <button className="ghost-button" type="button" onClick={() => void refreshAll()}>
-                    tentar de novo
-                  </button>
-                </div>
-              )}
-              {!loading && !error && (
-                <div className="stacked-copy">
-                  <p className="placeholder subtle-copy">
-                    {suggestions.suggestion_context === 'shortlist_em_primeiro_plano'
-                      ? 'Os livros já guardados com mais intenção aparecem primeiro.'
-                      : suggestions.suggestion_context === 'catalogo_aberto_com_prioridade_ao_nao_tocado'
-                        ? 'Sem histórico forte, o sistema prioriza opções abertas e estáveis.'
-                        : 'O percurso recente ajusta discretamente os próximos caminhos.'}
-                  </p>
+              <p className="placeholder subtle-copy">
+                Sem leitura ativa, esta lista vira seu ponto principal de decisão.
+              </p>
 
-                  {suggestions.featured.length > 0 ? (
-                    <div className="book-list">
-                      {suggestions.featured.map((book) => (
-                        <BookCard key={book.id} book={book} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="placeholder">
-                      Ainda não há um caminho puxando mais forte. Quando seu percurso ganhar corpo, este bloco responde.
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </section>
-
-        <aside className="home-support-stack">
-          {hasCurrentReading && (
-            <section className="panel panel-soft compact-panel">
-              <div className="panel-header compact-gap">
-                <h3>Próximos caminhos</h3>
-                <span>{suggestions.featured.length} opções</span>
-              </div>
               {loading && <p className="placeholder">Reunindo caminhos...</p>}
               {error && (
                 <div className="stacked-copy">
@@ -100,35 +87,27 @@ export function HomePage() {
                   </button>
                 </div>
               )}
+
               {!loading && !error && suggestions.featured.length > 0 ? (
-                <div className="book-list support-list">
-                  {suggestions.featured.slice(0, 4).map((book) => (
+                <div className="book-list central-path-list">
+                  {suggestions.featured.map((book) => (
                     <BookCard key={book.id} book={book} />
                   ))}
                 </div>
               ) : (
-                !loading && !error && <p className="placeholder">Sem novas opções fortes neste momento.</p>
+                !loading &&
+                !error && <p className="placeholder">Ainda não há destaque forte. Reabra a central em alguns instantes.</p>
               )}
-            </section>
+            </>
           )}
+        </section>
 
-          {!hasCurrentReading && (
-            <section className="panel panel-soft compact-panel">
-              <div className="panel-header compact-gap">
-                <h3>Continuidade</h3>
-              </div>
-              <p className="placeholder subtle-copy">
-                Nenhuma leitura ativa agora. Escolha um próximo caminho para iniciar um novo percurso.
-              </p>
-            </section>
-          )}
-
-          <section className={`panel panel-soft compact-panel${!hasCurrentReading ? ' shortlist-emphasis' : ''}`}>
-            <div className="panel-header">
+        <aside className="central-support">
+          <section className="panel panel-soft compact-panel">
+            <div className="panel-header compact-gap">
               <h3>Guardados</h3>
               <span>{readingState.shortlist.length}</span>
             </div>
-
             {shortlistPreview.length > 0 ? (
               <div className="mini-list">
                 {shortlistPreview.map((book) => (
@@ -139,21 +118,28 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <p className="placeholder">Quando algo merecer ficar por perto, ele aparece aqui.</p>
+              <p className="placeholder">Nada guardado por enquanto.</p>
             )}
           </section>
 
-          <section className="home-memory-note">
+          <section className="panel panel-soft compact-panel">
+            <div className="panel-header compact-gap">
+              <h3>Talvez depois</h3>
+            </div>
+            <p className="placeholder subtle-copy">Livros fora do foco imediato permanecem acessíveis pelo detalhe de cada título.</p>
+          </section>
+
+          <section className="central-memory-strip">
             {completedBooks.length > 0 ? (
               <>
                 <p className="eyebrow soft">Memória</p>
                 <p className="placeholder emphasis">{completedBooks[0].closing_text}</p>
-                <Link className="ghost-button command-secondary" to="/completed">
-                  ver concluídos
+                <Link className="text-link" to="/completed">
+                  abrir concluídos
                 </Link>
               </>
             ) : (
-              <p className="placeholder subtle-copy">Concluídos aparecem aqui como memória breve do percurso.</p>
+              <p className="placeholder subtle-copy">Concluídos surgem aqui como sinal leve de percurso.</p>
             )}
           </section>
         </aside>
