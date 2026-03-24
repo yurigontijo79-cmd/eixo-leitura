@@ -136,6 +136,10 @@ button {
   margin-bottom: 2px;
 }
 
+.compact-module-header h2 {
+  font-size: 1.42rem;
+}
+
 .page-header h2 {
   margin: 2px 0 0;
   font-size: 1.68rem;
@@ -164,7 +168,8 @@ button {
   border-color: rgba(255, 255, 255, 0.06);
 }
 
-.home-decision-axis {
+.home-decision-axis,
+.central-axis-reading {
   border-color: rgba(170, 137, 74, 0.24);
   background: #1c1d21;
 }
@@ -182,6 +187,22 @@ button {
 
 .central-axis .book-list {
   margin-top: 4px;
+}
+
+.central-axis-list {
+  padding-right: 6px;
+}
+
+.central-axis-list .panel-header {
+  margin-bottom: 10px;
+}
+
+.central-path-list {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.central-path-list .book-row:first-child {
+  margin-top: 2px;
 }
 
 .central-current-block {
@@ -205,6 +226,11 @@ button {
 .central-support {
   display: grid;
   gap: 12px;
+}
+
+.support-panel {
+  background: #17181c;
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 .central-memory-strip {

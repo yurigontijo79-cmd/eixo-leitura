@@ -10,13 +10,13 @@ export function HomePage() {
 
   return (
     <div className="page-stack module-page reading-central">
-      <header className="page-header home-header">
+      <header className="page-header home-header compact-module-header">
         <p className="eyebrow">Central de leitura</p>
         <h2>{hasCurrentReading ? 'Sessão em andamento' : 'Escolha seu próximo caminho'}</h2>
       </header>
 
       <div className="reading-central-layout">
-        <section className="panel central-axis">
+        <section className={hasCurrentReading ? 'panel central-axis central-axis-reading' : 'central-axis-list'}>
           {hasCurrentReading ? (
             <>
               <div className="panel-header">
@@ -103,7 +103,7 @@ export function HomePage() {
         </section>
 
         <aside className="central-support">
-          <section className="panel panel-soft compact-panel">
+          <section className="panel panel-soft compact-panel support-panel">
             <div className="panel-header compact-gap">
               <h3>Guardados</h3>
               <span>{readingState.shortlist.length}</span>
@@ -122,7 +122,7 @@ export function HomePage() {
             )}
           </section>
 
-          <section className="panel panel-soft compact-panel">
+          <section className="panel panel-soft compact-panel support-panel">
             <div className="panel-header compact-gap">
               <h3>Talvez depois</h3>
             </div>
