@@ -134,6 +134,10 @@ button {
   max-width: 1260px;
 }
 
+.home-header {
+  margin-bottom: 2px;
+}
+
 .page-header h2 {
   margin: 2px 0 0;
   font-size: 1.68rem;
@@ -162,9 +166,20 @@ button {
   border-color: rgba(126, 151, 181, 0.14);
 }
 
+.home-decision-axis,
 .home-axis {
   border-color: rgba(175, 145, 87, 0.28);
   background: linear-gradient(180deg, rgba(22, 33, 48, 0.96), rgba(15, 25, 39, 0.96));
+}
+
+.home-decision-axis {
+  min-height: 390px;
+}
+
+.home-axis-content {
+  display: grid;
+  gap: 8px;
+  max-width: 62ch;
 }
 
 .home-axis-empty {
@@ -183,8 +198,16 @@ button {
   align-items: start;
 }
 
+.home-decision-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 350px);
+  gap: 16px;
+  align-items: start;
+}
+
 .home-primary-stack,
-.home-secondary-stack {
+.home-secondary-stack,
+.home-support-stack {
   display: grid;
   gap: 14px;
 }
@@ -221,6 +244,14 @@ button {
 .book-list {
   display: grid;
   gap: 4px;
+}
+
+.support-list .book-row {
+  padding: 8px 0;
+}
+
+.support-list .book-row-action {
+  padding: 6px 10px;
 }
 
 .book-row {
@@ -560,4 +591,10 @@ button {
 
 .home-module .three-columns {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.home-memory-note {
+  display: grid;
+  gap: 8px;
+  padding: 6px 2px;
 }
