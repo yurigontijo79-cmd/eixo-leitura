@@ -20,7 +20,7 @@ export function BookCard({ book }: { book: Book }) {
         {book.state && <p className="book-state-chip subtle">{stateLabel[book.state]}</p>}
       </div>
       <Link className="ghost-button" to={`/books/${book.id}`}>
-        ver
+        abrir livro
       </Link>
     </article>
   );

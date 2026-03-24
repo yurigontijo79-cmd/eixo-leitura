@@ -63,7 +63,7 @@ export function BookPage() {
           <button className="ghost-button" type="button" onClick={() => void refreshAll()}>
             tentar de novo
           </button>
-          <Link className="ghost-button" to="/">
+          <Link className="ghost-button command-secondary" to="/">
             voltar ao início
           </Link>
         </div>
@@ -75,7 +75,7 @@ export function BookPage() {
     return (
       <section className="panel">
         <p className="placeholder">Esse livro não apareceu por aqui.</p>
-        <Link className="ghost-button" to="/">
+        <Link className="ghost-button command-secondary" to="/">
           voltar ao início
         </Link>
       </section>

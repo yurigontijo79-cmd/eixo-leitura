@@ -10,8 +10,9 @@ export function AppShell() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div>
-          <p className="eyebrow">EIXO Leitura</p>
+        <div className="sidebar-brand">
+          <p className="brand-mark">EIXO</p>
+          <p className="eyebrow">Leitura</p>
           <h1>Leitura guiada com percurso.</h1>
           <p className="sidebar-copy">
             Um espaço para escolher com calma, iniciar com intenção e manter memória do caminho.
@@ -19,7 +20,7 @@ export function AppShell() {
         </div>
 
         <nav className="nav">
-          {navigationItems.map((item) => (
+          {navigationItems.map((item, index) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -27,7 +28,8 @@ export function AppShell() {
                 isActive ? 'nav-link nav-link-active' : 'nav-link'
               }
             >
-              {item.label}
+              <span className="nav-index">{String(index + 1).padStart(2, '0')}</span>
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>

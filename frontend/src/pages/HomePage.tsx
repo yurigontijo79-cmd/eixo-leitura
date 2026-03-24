@@ -16,9 +16,40 @@ export function HomePage() {
         <h2>Que caminho faz sentido agora?</h2>
       </header>
 
+      <section className={`panel home-hero${hasCurrentReading ? '' : ' home-hero-empty'}`}>
+        <div className="panel-header">
+          <h3>{hasCurrentReading ? 'Continuidade' : 'Retomada'}</h3>
+          <span>{hasCurrentReading ? 'leitura em curso' : 'sem leitura ativa'}</span>
+        </div>
+        {hasCurrentReading ? (
+          <div className="home-hero-body">
+            <div>
+              <p className="book-state-chip">Em leitura</p>
+              <h3>{readingState.current_reading?.title}</h3>
+              <p className="book-meta">{readingState.current_reading?.author}</p>
+              <p className="placeholder subtle-copy">
+                {readingSessions.last_session
+                  ? `Você parou em: ${readingSessions.last_session.progress_text}`
+                  : 'Abra uma sessão breve e deixe o fio da leitura visível.'}
+              </p>
+            </div>
+            <Link className="action-button" to="/current">
+              abrir leitura atual
+            </Link>
+          </div>
+        ) : (
+          <div className="home-hero-body">
+            <p className="placeholder emphasis">Nenhuma leitura está em andamento agora.</p>
+            <p className="placeholder subtle-copy">
+              Pode ser um bom momento para retomar um livro guardado ou abrir espaço para outro começo.
+            </p>
+          </div>
+        )}
+      </section>
+
       <section className="panel">
         <div className="panel-header">
-          <h3>Próximos caminhos</h3>
+          <h3>Novos caminhos</h3>
           <span>{suggestions.featured.length} em destaque</span>
         </div>
 
@@ -95,35 +126,12 @@ export function HomePage() {
       <div className="split-panels three-columns">
         <section className="panel compact-panel">
           <div className="panel-header">
-            <h3>Leitura atual</h3>
+            <h3>Continuidade</h3>
           </div>
 
           {readingState.current_reading ? (
             <div className="stacked-copy">
-              <p className="book-state-chip">Em leitura</p>
-              <h4>{readingState.current_reading.title}</h4>
-              <p className="book-meta">{readingState.current_reading.author}</p>
-              <Link className="ghost-button" to="/current">
-                seguir leitura
-              </Link>
-            </div>
-          ) : (
-            <p className="placeholder">Nenhum livro está em leitura agora.</p>
-          )}
-        </section>
-
-        <section className="panel compact-panel">
-          <div className="panel-header">
-            <h3>Continuar</h3>
-          </div>
-
-          {readingState.current_reading ? (
-            <div className="stacked-copy">
-              <p className="placeholder emphasis">
-                {readingSessions.last_session
-                  ? `Você parou em: ${readingSessions.last_session.progress_text}`
-                  : 'Abra uma sessão breve e deixe um rastro simples do ponto em que a leitura está.'}
-              </p>
+              <p className="placeholder emphasis">Tudo pronto para continuar o livro em curso.</p>
               {readingSessions.last_session && (
                 <p className="placeholder subtle-copy">
                   Última sensação: leitura {readingSessions.last_session.feeling}
@@ -132,7 +140,7 @@ export function HomePage() {
               {readingTrajectory.trajectory_text && (
                 <p className="placeholder subtle-copy">{readingTrajectory.trajectory_text}</p>
               )}
-              <Link className="text-link" to="/current">
+              <Link className="ghost-button command-secondary" to="/current">
                 abrir leitura atual
               </Link>
             </div>
@@ -148,7 +156,7 @@ export function HomePage() {
 
         <section className={`panel compact-panel${!hasCurrentReading ? ' shortlist-emphasis' : ''}`}>
           <div className="panel-header">
-            <h3>{hasCurrentReading ? 'Talvez depois' : 'Próximo passo possível'}</h3>
+            <h3>{hasCurrentReading ? 'Shortlist' : 'Próximo passo possível'}</h3>
             <span>{readingState.shortlist.length} guardados</span>
           </div>
 
@@ -178,7 +186,7 @@ export function HomePage() {
             <p className="placeholder subtle-copy">
               Último encerramento: {completedBooks[0].title}, em {completedBooks[0].author}
             </p>
-            <Link className="text-link" to="/completed">
+            <Link className="ghost-button command-secondary" to="/completed">
               ver concluídos
             </Link>
           </div>

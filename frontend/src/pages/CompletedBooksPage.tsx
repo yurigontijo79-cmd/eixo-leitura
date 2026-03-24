@@ -62,8 +62,8 @@ export function CompletedBooksPage() {
                   {book.total_sessions} sessões
                   {book.dominant_feeling ? ` · predominância de leitura ${book.dominant_feeling}` : ''}
                 </p>
-                <Link className="text-link" to={`/books/${book.id}`}>
-                  ver livro
+                <Link className="ghost-button command-secondary" to={`/books/${book.id}`}>
+                  abrir livro
                 </Link>
               </article>
             ))}

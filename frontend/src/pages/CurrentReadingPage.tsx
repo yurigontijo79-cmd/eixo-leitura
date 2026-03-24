@@ -216,8 +216,8 @@ export function CurrentReadingPage() {
             <div className="stacked-copy relaxed">
               <p className="book-state-chip">Em leitura</p>
               <p className="book-description">{currentBook.description}</p>
-              <Link className="ghost-button" to={`/books/${currentBook.id}`}>
-                ver detalhes do livro
+              <Link className="ghost-button command-secondary" to={`/books/${currentBook.id}`}>
+                abrir livro
               </Link>
             </div>
 
