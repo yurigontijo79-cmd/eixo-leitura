@@ -186,7 +186,7 @@ export function CurrentReadingPage() {
   }
 
   if (loading) {
-    return <p className="placeholder">Carregando leitura atual...</p>;
+    return <p className="placeholder">Carregando leitura atual…</p>;
   }
 
   if (error) {
@@ -275,9 +275,7 @@ export function CurrentReadingPage() {
           </div>
         ) : (
           <div className="stacked-copy">
-            <p className="placeholder">
-              Quando um livro entrar em leitura, este espaço passa a guardar o percurso com mais nitidez.
-            </p>
+            <p className="placeholder">Sem leitura ativa no momento.</p>
             <Link className="ghost-button" to="/">
               voltar ao início
             </Link>
@@ -373,7 +371,7 @@ export function CurrentReadingPage() {
                 )}
               </article>
             ) : (
-              <p className="placeholder">A primeira sessão guardada aparece aqui assim que o percurso começar.</p>
+              <p className="placeholder">A primeira sessão aparece aqui assim que for registrada.</p>
             )}
           </section>
 
@@ -396,7 +394,7 @@ export function CurrentReadingPage() {
                 ))}
               </div>
             ) : (
-              <p className="placeholder">Ainda não há outras marcas deste percurso por aqui.</p>
+              <p className="placeholder">Sem outras sessões registradas por enquanto.</p>
             )}
           </section>
         </div>

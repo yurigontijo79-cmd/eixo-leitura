@@ -31,7 +31,7 @@ export function HomePage() {
                 <p className="placeholder subtle-copy">
                   {readingSessions.last_session
                     ? `Último ponto: ${readingSessions.last_session.progress_text}`
-                    : 'Sem sessão registrada ainda. Continue a leitura e registre um ponto de avanço.'}
+                    : 'Ainda sem sessão registrada para este livro.'}
                 </p>
 
                 <div className="central-actions">
@@ -49,7 +49,7 @@ export function HomePage() {
                   <h3>Próximos caminhos</h3>
                   <span>{suggestions.featured.length}</span>
                 </div>
-                {loading && <p className="placeholder">Reunindo caminhos...</p>}
+                {loading && <p className="placeholder">Carregando caminhos...</p>}
                 {error && (
                   <div className="stacked-copy">
                     <p className="placeholder">{error}</p>
@@ -95,8 +95,7 @@ export function HomePage() {
                   ))}
                 </div>
               ) : (
-                !loading &&
-                !error && <p className="placeholder">Ainda não há destaque forte. Reabra a central em alguns instantes.</p>
+                !loading && !error && <p className="placeholder">Sem caminhos em destaque agora.</p>
               )}
             </>
           )}
@@ -118,7 +117,7 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <p className="placeholder">Nada guardado por enquanto.</p>
+              <p className="placeholder">Nenhum guardado no momento.</p>
             )}
           </section>
 
@@ -126,7 +125,7 @@ export function HomePage() {
             <div className="panel-header compact-gap">
               <h3>Talvez depois</h3>
             </div>
-            <p className="placeholder subtle-copy">Livros fora do foco imediato permanecem acessíveis pelo detalhe de cada título.</p>
+            <p className="placeholder subtle-copy">Itens fora do foco imediato continuam acessíveis pelos detalhes.</p>
           </section>
 
           <section className="central-memory-strip">
@@ -139,7 +138,7 @@ export function HomePage() {
                 </Link>
               </>
             ) : (
-              <p className="placeholder subtle-copy">Concluídos surgem aqui como sinal leve de percurso.</p>
+              <p className="placeholder subtle-copy">Sem memória de concluídos por enquanto.</p>
             )}
           </section>
         </aside>

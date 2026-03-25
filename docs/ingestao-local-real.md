@@ -34,6 +34,54 @@ python -m app.commands.catalog_pipeline ingest_google_books --query "literatura 
 python -m app.commands.catalog_pipeline ingest_open_library --query "romance brasileiro" --max-results 5 --source-timeout 25 --throttle-seconds 0.6
 ```
 
+## Execução em lote por seeds (recomendado para povoamento inicial)
+
+Arquivo inicial sugerido no repositório:
+
+- `seeds/seeds_ptbr_iniciais.txt`
+
+Formato do arquivo:
+
+- uma seed por linha;
+- linhas vazias são ignoradas;
+- linhas iniciadas por `#` são comentários.
+
+### Batch Google Books
+
+```bash
+cd backend
+python -m app.commands.catalog_pipeline ingest_seed_list \
+  --source google_books \
+  --seed-file ../seeds/seeds_ptbr_iniciais.txt \
+  --max-results 10 \
+  --seed-throttle-seconds 1.2 \
+  --source-timeout 25 \
+  --retry-max 3 \
+  --backoff-seconds 2.0
+```
+
+### Batch Open Library
+
+```bash
+cd backend
+python -m app.commands.catalog_pipeline ingest_seed_list \
+  --source open_library \
+  --seed-file ../seeds/seeds_ptbr_iniciais.txt \
+  --max-results 10 \
+  --seed-throttle-seconds 0.6 \
+  --source-timeout 25 \
+  --throttle-seconds 0.5
+```
+
+### Flags úteis de operação
+
+- `--max-results` (default `10`; recomendado entre 5 e 20)
+- `--seed-limit` (rodada parcial para teste)
+- `--seed-throttle-seconds` (cadência entre seeds)
+- `--source-timeout`
+- Google: `--retry-max`, `--backoff-seconds`
+- Open Library: `--throttle-seconds`
+
 ## Como interpretar erros comuns
 
 ### 429 (Too Many Requests)
@@ -60,6 +108,37 @@ python -m app.commands.catalog_pipeline ingest_open_library --query "romance bra
 2. usar `summarize_ingestion_batch` e `inspect_ingestion_batch`;
 3. validar decisão por motivo (`decision_reason`);
 4. só então aumentar `max-results` gradualmente.
+
+## Como interpretar o resumo consolidado do batch
+
+Ao final, o comando retorna JSON com:
+
+- `seed_count_processed`
+- `batches_created`
+- `records_fetched_total`
+- `records_promoted_total`
+- `records_retained_total`
+- `records_discarded_total`
+- `seeds_failed`
+- `seeds_with_promoted`
+- `seeds_without_promoted`
+
+Além disso, `results` traz resultado por seed:
+
+- `seed`
+- `batch_id`
+- `status`
+- `records_fetched/promoted/retained/discarded`
+- `error` (quando houver)
+
+## Retomar após falha parcial
+
+Se parte das seeds falhar:
+
+1. identifique seeds com `status != completed` no `results`;
+2. crie um novo arquivo com somente essas seeds;
+3. rode novamente `ingest_seed_list` com o arquivo reduzido;
+4. inspecione os `batch_id` problemáticos via `summarize_ingestion_batch` e `inspect_ingestion_batch`.
 
 ## Limitações remanescentes
 

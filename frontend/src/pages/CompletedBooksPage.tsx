@@ -15,7 +15,7 @@ export function CompletedBooksPage() {
   const notice = (location.state as { notice?: string } | null)?.notice ?? null;
 
   if (loading) {
-    return <p className="placeholder">Reunindo os percursos concluídos...</p>;
+    return <p className="placeholder">Carregando concluídos…</p>;
   }
 
   if (error) {
@@ -69,9 +69,7 @@ export function CompletedBooksPage() {
             ))}
           </div>
         ) : (
-          <p className="placeholder">
-            Quando uma leitura se encerrar, ela deixa aqui uma memória breve do caminho que encontrou.
-          </p>
+          <p className="placeholder">Sem leituras concluídas por enquanto.</p>
         )}
       </section>
     </div>

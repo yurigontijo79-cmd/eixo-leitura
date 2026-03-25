@@ -51,6 +51,31 @@ python -m app.commands.catalog_pipeline inspect_ingestion_batch --batch-id 1 --l
 python -m app.commands.catalog_pipeline inspect_staging_record --record-id 1
 ```
 
+### 7) Ingestão em lote por arquivo de seeds
+
+```bash
+python -m app.commands.catalog_pipeline ingest_seed_list \
+  --source google_books \
+  --seed-file ../seeds/seeds_ptbr_iniciais.txt \
+  --max-results 10 \
+  --seed-throttle-seconds 1.2 \
+  --source-timeout 25 \
+  --retry-max 3 \
+  --backoff-seconds 2.0
+```
+
+Exemplo Open Library:
+
+```bash
+python -m app.commands.catalog_pipeline ingest_seed_list \
+  --source open_library \
+  --seed-file ../seeds/seeds_ptbr_iniciais.txt \
+  --max-results 10 \
+  --seed-throttle-seconds 0.6 \
+  --source-timeout 25 \
+  --throttle-seconds 0.5
+```
+
 ## Saída esperada
 
 Os comandos de ingestão retornam JSON com:
@@ -82,6 +107,8 @@ Passos mínimos:
 3. rodar `summarize_ingestion_batch`;
 4. validar totais e exemplos promovidos.
 
+No modo batch (`ingest_seed_list`), o próprio retorno já inclui resumo consolidado e resultados por seed.
+
 ## Convivência mock x real no app
 
 Variável de ambiente:
@@ -112,6 +139,8 @@ Se a fonte externa estiver indisponível (por exemplo, proxy bloqueando acesso),
 
 Mesmo em falha, o lote permanece consultável por `summarize_ingestion_batch`.
 
+No batch, falhas parciais não interrompem a rodada inteira: cada seed gera seu próprio lote e erro associado no relatório final.
+
 
 ## Variáveis de ambiente para hardening
 
@@ -123,3 +152,45 @@ Mesmo em falha, o lote permanece consultável por `summarize_ingestion_batch`.
 - `OPENLIBRARY_THROTTLE_SECONDS`
 
 Veja também `docs/ingestao-local-real.md`.
+
+## Formato do arquivo de seeds
+
+- um termo por linha;
+- linhas vazias são ignoradas;
+- linhas iniciadas com `#` são tratadas como comentário.
+
+Exemplo:
+
+```text
+literatura brasileira
+romance brasileiro
+clarice lispector
+# comentário
+```
+
+## Flags principais do `ingest_seed_list`
+
+- `--source` (`google_books` | `open_library`)
+- `--seed-file` (caminho do arquivo de seeds)
+- `--max-results` (default `10`)
+- `--seed-limit` (limite opcional de seeds processadas)
+- `--seed-throttle-seconds` (pausa entre seeds)
+- `--source-timeout`
+- `--retry-max` e `--backoff-seconds` (Google Books)
+- `--throttle-seconds` (Open Library)
+
+## Resumo consolidado do batch
+
+O retorno final inclui:
+
+- `seed_count_processed`
+- `batches_created`
+- `records_fetched_total`
+- `records_promoted_total`
+- `records_retained_total`
+- `records_discarded_total`
+- `seeds_failed`
+- `seeds_with_promoted`
+- `seeds_without_promoted`
+
+Também há `results` com saída por seed (`batch_id`, `status`, totais e `error` quando existir).

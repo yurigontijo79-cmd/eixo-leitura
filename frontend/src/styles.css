@@ -262,6 +262,11 @@ button {
   color: rgba(220, 223, 228, 0.78);
 }
 
+.placeholder {
+  margin: 0;
+  max-width: 56ch;
+}
+
 .book-list {
   display: grid;
   gap: 4px;
@@ -452,10 +457,10 @@ button {
 .mini-list-item {
   display: grid;
   gap: 2px;
-  padding: 12px;
+  padding: 10px 11px;
   border-radius: 12px;
-  background: rgba(8, 17, 28, 0.34);
-  border: 1px solid rgba(126, 151, 181, 0.2);
+  background: rgba(50, 65, 87, 0.2);
+  border: 1px solid rgba(129, 155, 188, 0.18);
 }
 
 .mini-list-item span {

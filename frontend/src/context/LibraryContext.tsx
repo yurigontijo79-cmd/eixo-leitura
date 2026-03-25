@@ -97,6 +97,29 @@ const emptySuggestions: SuggestionsSnapshot = {
 
 const LibraryContext = createContext<LibraryContextValue | undefined>(undefined);
 
+function normalizeUiError(error: unknown, fallbackMessage: string): string {
+  if (!(error instanceof Error)) {
+    return fallbackMessage;
+  }
+
+  const raw = (error.message || '').trim();
+  if (!raw) {
+    return fallbackMessage;
+  }
+
+  const lowered = raw.toLowerCase();
+  if (
+    lowered.includes('networkerror') ||
+    lowered.includes('failed to fetch') ||
+    lowered.includes('load failed') ||
+    lowered.includes('fetch')
+  ) {
+    return 'A conexão com o catálogo falhou neste momento. Tente novamente em instantes.';
+  }
+
+  return raw;
+}
+
 function mergeBooksWithState(books: Book[], snapshot: ReadingStateSnapshot): Book[] {
   const stateMap = new Map<number, Book['state']>();
 
@@ -154,7 +177,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setCompletedBooks(completedResponse);
       setSuggestions(suggestionsResponse);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : 'Não foi possível retomar seu percurso agora.');
+      setError(normalizeUiError(fetchError, 'Não foi possível carregar a Central de Leitura agora.'));
     } finally {
       setLoading(false);
     }

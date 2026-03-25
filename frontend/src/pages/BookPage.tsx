@@ -52,7 +52,7 @@ export function BookPage() {
   }
 
   if (loading) {
-    return <p className="placeholder">Abrindo o livro...</p>;
+    return <p className="placeholder">Carregando livro…</p>;
   }
 
   if (error) {
@@ -74,7 +74,7 @@ export function BookPage() {
   if (!book) {
     return (
       <section className="panel">
-        <p className="placeholder">Esse livro não apareceu por aqui.</p>
+        <p className="placeholder">Livro não encontrado na Central.</p>
         <Link className="ghost-button command-secondary" to="/">
           voltar ao início
         </Link>
