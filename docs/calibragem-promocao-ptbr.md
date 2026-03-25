@@ -33,11 +33,15 @@ Com isso, um registro descartado fica auditável: motivo, score e sinais princip
 ### promoted
 
 - `confianca_ptbr_alta`
+- `open_library_sinais_fortes`
+- `open_library_ptbr_textual`
+- `sinais_ptbr_suficientes_sem_isbn`
 
 ### retained
 
 - `ambiguidade_ptbr`
 - `ambiguidade_sem_sinal_forte`
+- `conflito_dedupe_revisar`
 
 ### discarded
 
@@ -52,14 +56,16 @@ A política continua conservadora, mas menos cega:
 
 1. **descarta imediatamente** idioma incompatível explícito;
 2. **descarta** metadado estruturalmente insuficiente;
-3. **promove** apenas score alto (`>= 70`) com segurança;
-4. **retém** zona intermediária (`35..69`) para ambiguidade útil;
-5. **descarta** score baixo (`< 35`) por confiança insuficiente;
-6. **bloqueia por dedupe/colisão** quando há convergência de dedupe, mas score insuficiente para promover com segurança.
+3. **promove** score alto (`>= 70`) com segurança;
+4. **para Open Library**, aceita promoção pragmática sem ISBN quando há sinais fortes suficientes (score alto + metadado textual consistente);
+5. **não exige ISBN obrigatório** para promover quando sinais pt-BR e metadado textual já são fortes;
+6. **retém** zona intermediária para ambiguidade útil e para conflito de dedupe que ainda requer revisão;
+7. **descarta** score baixo (`< 35`) por confiança insuficiente.
 
 ## Ajustes feitos
 
 - inclusão de `decision_status`, `decision_reason` e `normalized_signals` no staging;
+- garantia operacional de `decision_reason` preenchido em novos registros;
 - função de decisão explícita (`classify_catalog_decision`) separando idioma, metadado, confiança e dedupe;
 - `summarize_ingestion_batch` com detalhamento por motivo de decisão;
 - comandos de inspeção:
@@ -90,5 +96,6 @@ Mesmo sob limitação de rede externa, os lotes ficam registrados com status e p
 
 - o score pt-BR ainda é heurístico e inicial;
 - Open Library pode vir com metadado incompleto;
+- promoção sem ISBN continua dependente de sinais textuais e score forte (não é promoção automática);
 - ambiente com bloqueio de rede pode gerar lotes `failed` sem coleta;
 - a dedupe permanece conservadora e pragmática nesta etapa.

@@ -924,8 +924,14 @@ def score_pt_br_confidence(
 
 def classify_catalog_decision(parsed: dict, score: int, confidence_reasons: str, dedupe_match_type: str | None) -> tuple[str, str]:
     language_code = (parsed.get("language_code") or "").lower()
-    has_minimum_metadata = bool(parsed.get("title")) and bool(parsed.get("author"))
+    title = (parsed.get("title") or "").strip()
+    author = (parsed.get("author") or "").strip()
+    has_minimum_metadata = bool(title) and bool(author)
     has_identifier = bool(parsed.get("isbn10") or parsed.get("isbn13"))
+    source_name = (parsed.get("source_name") or "").strip().lower()
+    reasons = confidence_reasons or "sem_sinal_forte"
+    has_strong_pt_signal = any(token in reasons for token in ("language_code=pt", "language_region=BR"))
+    has_no_strong_signal = "sem_sinal_forte" in reasons
 
     if language_code and language_code != "pt":
         return "discarded", "idioma_incompativel"
@@ -933,14 +939,26 @@ def classify_catalog_decision(parsed: dict, score: int, confidence_reasons: str,
     if not has_minimum_metadata and not has_identifier:
         return "discarded", "metadado_insuficiente"
 
-    if dedupe_match_type in {"isbn13", "isbn10", "title_author"} and score < 45:
+    if dedupe_match_type in {"isbn13", "isbn10", "title_author"} and score < 40:
         return "discarded", "bloqueado_dedupe_colisao"
+
+    if dedupe_match_type in {"isbn13", "isbn10", "title_author"} and score < 55:
+        return "retained", "conflito_dedupe_revisar"
 
     if score >= 70:
         return "promoted", "confianca_ptbr_alta"
 
+    if source_name == "open_library" and has_minimum_metadata:
+        if score >= 50 and not has_no_strong_signal:
+            return "promoted", "open_library_sinais_fortes"
+        if score >= 45 and has_strong_pt_signal:
+            return "promoted", "open_library_ptbr_textual"
+
+    if has_minimum_metadata and score >= 58 and has_strong_pt_signal:
+        return "promoted", "sinais_ptbr_suficientes_sem_isbn"
+
     if score >= 35:
-        if "sem_sinal_forte" in confidence_reasons:
+        if has_no_strong_signal:
             return "retained", "ambiguidade_sem_sinal_forte"
         return "retained", "ambiguidade_ptbr"
 
@@ -1449,9 +1467,9 @@ def ingest_catalog_records(
                     reason,
                     staging_status,
                     staging_status,
-                    decision_reason,
+                    decision_reason or "sem_motivo_classificacao",
                     json.dumps(normalized_signals, ensure_ascii=False),
-                    decision_reason if staging_status == "discarded" else None,
+                    (decision_reason or "sem_motivo_classificacao") if staging_status == "discarded" else None,
                     match_type,
                     work_id,
                     edition_id,

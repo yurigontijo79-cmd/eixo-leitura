@@ -71,6 +71,23 @@ class CatalogPipelineRulesTests(unittest.TestCase):
         self.assertEqual(status, "discarded")
         self.assertEqual(reason, "idioma_incompativel")
 
+    def test_open_library_promotes_with_strong_signals_without_isbn(self):
+        status, reason = classify_catalog_decision(
+            parsed={
+                "source_name": "open_library",
+                "language_code": "pt",
+                "title": "Memórias Póstumas de Brás Cubas",
+                "author": "Machado de Assis",
+                "isbn10": None,
+                "isbn13": None,
+            },
+            score=50,
+            confidence_reasons="language_code=pt,texto_com_sinal_pt",
+            dedupe_match_type=None,
+        )
+        self.assertEqual(status, "promoted")
+        self.assertIn("open_library", reason)
+
 
 if __name__ == "__main__":
     unittest.main()

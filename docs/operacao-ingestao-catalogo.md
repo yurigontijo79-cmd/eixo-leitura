@@ -133,6 +133,13 @@ Exemplo de rodada local esperada:
 - Open Library pode retornar menos sinais de idioma/região;
 - Amazon está somente como stub técnico.
 
+## Nota de calibragem (Open Library)
+
+- ISBN **não é requisito obrigatório** de promoção;
+- para Open Library, score pt-BR forte + título/autor válidos podem promover mesmo sem ISBN;
+- retenção continua para casos ambíguos reais (inclusive conflito de dedupe);
+- novos registros de staging devem sair com `decision_reason` preenchido.
+
 ## Comportamento em bloqueio de rede
 
 Se a fonte externa estiver indisponível (por exemplo, proxy bloqueando acesso), o lote é encerrado com `status=failed` e o erro fica registrado no retorno do comando de ingestão.
