@@ -1,0 +1,11 @@
+literatura brasileira
+romance brasileiro
+clarice lispector
+machado de assis
+dostoiévski
+poesia brasileira
+filosofia em portugues
+contos brasileiros
+
+# linhas comentadas são ignoradas
+# literatura infantojuvenil brasileira
